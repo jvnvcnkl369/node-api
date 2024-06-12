@@ -12,7 +12,7 @@ const delimiter = ",";
 let tail = "";
 const dataStructure: any = {};
 
-const transformData = (url: string): any => {
+const transformUrl = (url: string): any => {
 
   const urlObj = new URL(decodeURI(url));
   const ipAddress = urlObj.hostname;
@@ -39,7 +39,7 @@ const transformData = (url: string): any => {
   }
 };
 
-const stringsChunkToObjectTransform = new Transform({
+const stringChunkToObjectTransform = new Transform({
   defaultEncoding: "utf8",
   transform(chunk, encoding, cb) {
     try {
@@ -55,7 +55,7 @@ const stringsChunkToObjectTransform = new Transform({
       for (const piece of pieces) {
         const parsedObject = tryParseJson(piece);
         if (parsedObject && parsedObject.fileUrl) {
-          objectToUrlTransform.write(parsedObject.fileUrl);
+          urlToObjectTransform.write(parsedObject.fileUrl);
         }
       }
       cb();
@@ -66,17 +66,17 @@ const stringsChunkToObjectTransform = new Transform({
   flush(cb) {
     const parsedObject = tryParseJson(tail);
     if (parsedObject && parsedObject.fileUrl) {
-      objectToUrlTransform.write(parsedObject.fileUrl);
+      urlToObjectTransform.write(parsedObject.fileUrl);
     }
     cb();
   },
 });
 
-const objectToUrlTransform = new Transform({
+const urlToObjectTransform = new Transform({
   objectMode: true,
   transform(chunk: any, encoding: any, callback: any) {
     try {
-      transformData(chunk);
+      transformUrl(chunk);
       callback();
     } catch (err) {
       callback(err);
@@ -92,11 +92,11 @@ app.get("/api/files", async (req: Request, res: Response) => {
     const response = await axios.get(externalUrl, { responseType: "stream" });
 
     for await (const chunk of  response.data) {
-      stringsChunkToObjectTransform.write(chunk.toString());
+      stringChunkToObjectTransform.write(chunk.toString());
     }
 
     response.data.on('end', () => {
-      stringsChunkToObjectTransform.write(null);
+      stringChunkToObjectTransform.write(null);
     })
     
     for await (const chunk of createChunksOfTransformedData()) {
