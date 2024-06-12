@@ -12,7 +12,7 @@ const delimiter = ",";
 let tail = "";
 const dataStructure: any = {};
 
-const transformUrl = (url: string): any => {
+const transformUrl = (url: string): void => {
 
   const urlObj = new URL(decodeURI(url));
   const ipAddress = urlObj.hostname;
