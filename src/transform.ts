@@ -121,32 +121,3 @@ export const createUrlToObjectTransform = () => {
   });
 };
 
-// const transformUrl = (url: string): void => {
-//   try {
-//     const urlObj = new URL(decodeURI(url));
-//     const ipAddress = urlObj.hostname;
-//     const pathSegments = urlObj.pathname
-//       .split("/")
-//       .filter((segment) => segment);
-
-//     if (!dataStructure[ipAddress]) {
-//       dataStructure[ipAddress] = [];
-//     }
-//     let currentLevel = dataStructure[ipAddress];
-//     for (let i = 0; i < pathSegments.length; i++) {
-//       const segment = pathSegments[i];
-//       if (i === pathSegments.length - 1) {
-//         currentLevel.push(segment);
-//       } else {
-//         let nextLevel = currentLevel.find(
-//           (item: any) => typeof item === "object" && item[segment]
-//         );
-//         if (!nextLevel) {
-//           nextLevel = { [segment]: [] };
-//           currentLevel.push(nextLevel);
-//         }
-//         currentLevel = nextLevel[segment];
-//       }
-//     }
-//   } catch (error) {}
-// };

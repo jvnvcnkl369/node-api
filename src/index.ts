@@ -39,7 +39,6 @@ app.get("/api/files", async (req: Request, res: Response) => {
     });
     urlToObjectTransform.on("end", () => {
       console.log("ending urlToObjectTransform");
-      res.write(']}');
       res.end();
     });
   } catch (error) {
