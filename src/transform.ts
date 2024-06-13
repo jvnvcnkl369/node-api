@@ -1,10 +1,13 @@
 import { Transform } from "stream";
 import { tryParseJson } from "./helpers";
-const delimiter = ",";
-let tail = "";
+import { DataInterface } from "./types/interfaces";
+import path from "path";
 
-export const createStringChunkToObjectTransform = () =>
-  new Transform({
+export const createStringChunkToObjectTransform = () => {
+  const delimiter = ",";
+  let tail = "";
+
+  return new Transform({
     defaultEncoding: "utf8",
     transform(chunk, encoding, cb) {
       try {
@@ -39,52 +42,111 @@ export const createStringChunkToObjectTransform = () =>
       cb();
     },
   });
+};
 
-export const createUrlToObjectTransform = () =>
-  new Transform({
+export const createUrlToObjectTransform = () => {
+  let transformedObject: any = {};
+
+  let currentIp = "";
+  let currentDirectory = "";
+  let startOfStream = true;
+  let count = 0;
+
+  const addExtraData = (chunk: string): string => {
+    let chunkReadyToSend = "";
+    if (startOfStream) {
+      chunkReadyToSend += `{"${currentIp}":[${chunk}`;
+    } else {
+      chunkReadyToSend += `,${chunk}`;
+    }
+    startOfStream = false;
+    return chunkReadyToSend;
+  };
+
+  return new Transform({
     objectMode: true,
     transform(chunk: any, encoding: any, callback: any) {
       try {
-        console.log("Chunks in transformer", chunk);
+       
+        const urlObj = new URL(decodeURI(chunk));
+        const ipAddress = urlObj.hostname;
+        const pathSegments = urlObj.pathname
+          .split("/")
+          .filter((segment) => segment);
 
-        //   transformUrl(chunk);
-        this.push(chunk);
+        currentIp = ipAddress;
 
+        if (currentDirectory && currentDirectory !== pathSegments[0]) {
+
+          const chunkToSend = addExtraData(
+            JSON.stringify(transformedObject[currentIp].shift())
+          );
+          currentDirectory = pathSegments[0];
+          if (chunkToSend) {
+            this.push(chunkToSend);
+          }
+        }
+        currentDirectory = pathSegments[0];
+        if (!transformedObject[ipAddress]) {
+          transformedObject[ipAddress] = [];
+        }
+        let currentLevel = transformedObject[ipAddress];
+        for (let i = 0; i < pathSegments.length; i++) {
+          const segment = pathSegments[i];
+          const segmentLevel =  pathSegments.length - 1;
+          if (i === segmentLevel && path.extname(segment)) {
+            currentLevel.push(segment);
+          } else {
+            let nextLevel = currentLevel.find(
+              (item: any) => typeof item === "object" && item[segment]
+            );
+            if (!nextLevel) {
+              nextLevel = { [segment]: [] };
+              currentLevel.push(nextLevel);
+            }
+            currentLevel = nextLevel[segment];
+          }
+        }
         callback();
       } catch (err) {
         callback(err);
       }
     },
+    flush (cb) {
+      let lastChunk = addExtraData(JSON.stringify(transformedObject[currentIp]));
+      lastChunk += ']}';
+      this.push(lastChunk);
+      cb();
+       }
   });
-
-export const dataStructure: any = {};
-
-const transformUrl = (url: string): void => {
-  try {
-    const urlObj = new URL(decodeURI(url));
-    const ipAddress = urlObj.hostname;
-    const pathSegments = urlObj.pathname
-      .split("/")
-      .filter((segment) => segment);
-
-    if (!dataStructure[ipAddress]) {
-      dataStructure[ipAddress] = [];
-    }
-    let currentLevel = dataStructure[ipAddress];
-    for (let i = 0; i < pathSegments.length; i++) {
-      const segment = pathSegments[i];
-      if (i === pathSegments.length - 1) {
-        currentLevel.push(segment);
-      } else {
-        let nextLevel = currentLevel.find(
-          (item: any) => typeof item === "object" && item[segment]
-        );
-        if (!nextLevel) {
-          nextLevel = { [segment]: [] };
-          currentLevel.push(nextLevel);
-        }
-        currentLevel = nextLevel[segment];
-      }
-    }
-  } catch (error) {}
 };
+
+// const transformUrl = (url: string): void => {
+//   try {
+//     const urlObj = new URL(decodeURI(url));
+//     const ipAddress = urlObj.hostname;
+//     const pathSegments = urlObj.pathname
+//       .split("/")
+//       .filter((segment) => segment);
+
+//     if (!dataStructure[ipAddress]) {
+//       dataStructure[ipAddress] = [];
+//     }
+//     let currentLevel = dataStructure[ipAddress];
+//     for (let i = 0; i < pathSegments.length; i++) {
+//       const segment = pathSegments[i];
+//       if (i === pathSegments.length - 1) {
+//         currentLevel.push(segment);
+//       } else {
+//         let nextLevel = currentLevel.find(
+//           (item: any) => typeof item === "object" && item[segment]
+//         );
+//         if (!nextLevel) {
+//           nextLevel = { [segment]: [] };
+//           currentLevel.push(nextLevel);
+//         }
+//         currentLevel = nextLevel[segment];
+//       }
+//     }
+//   } catch (error) {}
+// };
