@@ -34,11 +34,12 @@ app.get("/api/files", async (req: Request, res: Response) => {
     urlToObjectTransform.on("data", (chunk) => {
       res.write(chunk);
     });
-    stringChunkToObjectTransform.on("error", (error) => {
-      console.log("Error in stringChunkToObjectTransform", error);
+    urlToObjectTransform.on("error", (error) => {
+      console.log("Error in urlToObjectTransform", error);
     });
     urlToObjectTransform.on("end", () => {
       console.log("ending urlToObjectTransform");
+      res.write(']}');
       res.end();
     });
   } catch (error) {
