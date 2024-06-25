@@ -1,15 +1,11 @@
 export interface File {
-    fileName: string;
-}
-
-export interface SubDirectory {
-    [subDirectoryName: string]: File[];
+  fileName: string;
 }
 
 export interface Directory {
-    [directoryName: string]: SubDirectory | File[];
+  [directoryName: string]: Directory | File[];
 }
 
-export interface DataInterface {
-    [ipAddress: string]: Directory[];
+export interface TransformedData {
+  [ipAddress: string]: (string | Directory)[];
 }
